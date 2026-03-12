@@ -408,7 +408,6 @@ export default function Home() {
   const [events, setEvents] = useState<CachedEvent[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [syncedAt, setSyncedAt] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -441,25 +440,6 @@ export default function Home() {
       navigator.serviceWorker.register("/sw.js").catch(console.error);
     }
   }, []);
-
-  async function handleSync() {
-    setSyncing(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/sync", { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Sync failed");
-      }
-      const data = await res.json();
-      setEvents(data.events);
-      setSyncedAt(data.synced_at);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Sync failed");
-    } finally {
-      setSyncing(false);
-    }
-  }
 
   function handleReported() {
     // Refresh reports
@@ -519,20 +499,11 @@ export default function Home() {
           </div>
         )}
 
-        <div className="mt-5 flex items-center justify-center gap-4">
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {syncing ? "Syncing..." : "Sync Events"}
-          </button>
-          {syncedAt && (
-            <span className="text-xs text-neutral-600">
-              Last synced {timeAgo(syncedAt)}
-            </span>
-          )}
-        </div>
+        {syncedAt && (
+          <p className="mt-4 text-xs text-neutral-600">
+            Last synced {timeAgo(syncedAt)}
+          </p>
+        )}
       </header>
 
       <NotificationBanner />
@@ -551,8 +522,8 @@ export default function Home() {
 
       {!loading && events.length === 0 && !error && (
         <div className="text-center py-20 text-neutral-500">
-          <p className="text-2xl mb-2">No events cached yet</p>
-          <p>Hit &quot;Sync Events&quot; to fetch from Luma</p>
+          <p className="text-2xl mb-2">No upcoming events</p>
+          <p>Events sync automatically every night</p>
         </div>
       )}
 

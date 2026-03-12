@@ -7,7 +7,19 @@ export const dynamic = "force-dynamic";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+export async function GET(request: Request) {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return sync();
+}
+
 export async function POST() {
+  return sync();
+}
+
+async function sync() {
   try {
     const entries = await fetchUpcomingEvents();
     const classifications = await classifyEvents(entries);
