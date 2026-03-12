@@ -308,70 +308,6 @@ function ScheduleEvent({
   );
 }
 
-function SubscribeForm() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [message, setMessage] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus("loading");
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setStatus("success");
-      setMessage(data.message);
-      setEmail("");
-    } catch (err) {
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Failed to subscribe");
-    }
-  }
-
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-      <h3 className="font-semibold text-lg">Get the daily schedule</h3>
-      <p className="text-sm text-neutral-400 mt-1">
-        We&apos;ll email you every morning with today&apos;s free food &amp;
-        drink events.
-      </p>
-      <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (status !== "idle") setStatus("idle");
-          }}
-          placeholder="you@example.com"
-          required
-          className="flex-1 px-4 py-2.5 rounded-lg bg-white/10 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-white/30"
-        />
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="px-5 py-2.5 rounded-lg font-medium text-sm bg-white text-black hover:bg-neutral-200 transition-colors disabled:opacity-50"
-        >
-          {status === "loading" ? "..." : "Subscribe"}
-        </button>
-      </form>
-      {status === "success" && (
-        <p className="mt-2 text-sm text-green-400">{message}</p>
-      )}
-      {status === "error" && (
-        <p className="mt-2 text-sm text-red-400">{message}</p>
-      )}
-    </div>
-  );
-}
-
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -673,13 +609,6 @@ export default function Home() {
           </section>
         );
       })}
-
-      {/* Subscribe */}
-      {!loading && (
-        <div className="mt-8 mb-12">
-          <SubscribeForm />
-        </div>
-      )}
 
       <footer className="text-center text-neutral-600 text-xs pb-8">
         <p>Data from Luma &middot; Frontier Tower SF</p>

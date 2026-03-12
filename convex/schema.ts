@@ -20,11 +20,6 @@ export default defineSchema({
     syncedAt: v.string(),
   }).index("by_eventId", ["eventId"]),
 
-  subscribers: defineTable({
-    email: v.string(),
-    subscribedAt: v.string(),
-  }).index("by_email", ["email"]),
-
   reports: defineTable({
     eventId: v.string(),
     type: v.union(v.literal("food"), v.literal("drinks")),
