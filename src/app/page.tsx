@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 type FoodStatus = "food" | "drinks_only" | "none";
 
@@ -394,6 +394,49 @@ function NotificationBanner() {
   );
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+function InstallButton() {
+  const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    // Hide if already installed as standalone PWA
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+
+    function handler(e: Event) {
+      e.preventDefault();
+      deferredPrompt.current = e as BeforeInstallPromptEvent;
+      setShow(true);
+    }
+
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function handleInstall() {
+    if (!deferredPrompt.current) return;
+    deferredPrompt.current.prompt();
+    const { outcome } = await deferredPrompt.current.userChoice;
+    if (outcome === "accepted") setShow(false);
+    deferredPrompt.current = null;
+  }
+
+  if (!show) return null;
+
+  return (
+    <button
+      onClick={handleInstall}
+      className="px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/20"
+    >
+      Install App
+    </button>
+  );
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -499,11 +542,14 @@ export default function Home() {
           </div>
         )}
 
-        {syncedAt && (
-          <p className="mt-4 text-xs text-neutral-600">
-            Last synced {timeAgo(syncedAt)}
-          </p>
-        )}
+        <div className="mt-5 flex items-center justify-center gap-4">
+          <InstallButton />
+          {syncedAt && (
+            <span className="text-xs text-neutral-600">
+              Last synced {timeAgo(syncedAt)}
+            </span>
+          )}
+        </div>
       </header>
 
       <NotificationBanner />
