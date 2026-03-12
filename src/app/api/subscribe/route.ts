@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { addSubscriber } from "@/lib/subscribers";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@convex/_generated/api";
 
 export const dynamic = "force-dynamic";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: Request) {
   try {
@@ -16,11 +19,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
-    const added = await addSubscriber(email);
+    const result = await convex.mutation(api.subscribers.add, { email });
 
     return NextResponse.json({
       ok: true,
-      message: added ? "Subscribed! You'll get daily updates." : "You're already subscribed!",
+      message: result.added
+        ? "Subscribed! You'll get daily updates."
+        : "You're already subscribed!",
     });
   } catch (error) {
     console.error("Subscribe error:", error);

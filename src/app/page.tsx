@@ -4,6 +4,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 
 type FoodStatus = "food" | "drinks_only" | "none";
 
+interface Report {
+  event_id: string;
+  type: "food" | "drinks";
+  description: string;
+  reported_at: string;
+}
+
 interface CachedEvent {
   id: string;
   name: string;
@@ -16,6 +23,8 @@ interface CachedEvent {
   food_status: FoodStatus;
   food_reason: string;
 }
+
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 
 function formatTime(iso: string, timezone: string): string {
   return new Date(iso).toLocaleString("en-US", {
@@ -77,8 +86,155 @@ function FoodTag({ status, reason }: { status: FoodStatus; reason: string }) {
   return null;
 }
 
-function ScheduleEvent({ event }: { event: CachedEvent }) {
+function ReportButton({
+  eventId,
+  onReported,
+}: {
+  eventId: string;
+  onReported: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState<"food" | "drinks">("food");
+  const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setSubmitting(true);
+    try {
+      await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: eventId, type, description }),
+      });
+      setOpen(false);
+      setDescription("");
+      onReported();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(true);
+        }}
+        className="mt-2 text-xs text-yellow-500 hover:text-yellow-400 transition-colors"
+      >
+        &#128064; I see free food/drinks here!
+      </button>
+    );
+  }
+
+  return (
+    <div
+      onClick={(e) => e.preventDefault()}
+      className="mt-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20"
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setType("food");
+            }}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+              type === "food"
+                ? "bg-green-500/30 text-green-400 border border-green-500/40"
+                : "bg-white/5 text-neutral-400 border border-white/10"
+            }`}
+          >
+            &#127829; Food
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setType("drinks");
+            }}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+              type === "drinks"
+                ? "bg-blue-500/30 text-blue-400 border border-blue-500/40"
+                : "bg-white/5 text-neutral-400 border border-white/10"
+            }`}
+          >
+            &#127866; Drinks
+          </button>
+        </div>
+        <input
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="What do you see? (e.g. Pizza, beer)"
+          maxLength={200}
+          className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-white/30"
+        />
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={submitting}
+            onClick={(e) => e.stopPropagation()}
+            className="px-4 py-1.5 rounded-lg text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-400 transition-colors disabled:opacity-50"
+          >
+            {submitting ? "Sending..." : "Report"}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+            }}
+            className="px-4 py-1.5 rounded-lg text-xs text-neutral-400 hover:text-neutral-300"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function ReportBadges({ reports }: { reports: Report[] }) {
+  if (reports.length === 0) return null;
+
+  const latest = reports[reports.length - 1];
+  const ago = timeAgo(latest.reported_at);
+
+  return (
+    <div className="mt-2 flex flex-col gap-1">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 w-fit">
+        &#128064; SPOTTED BY ATTENDEE
+      </span>
+      {latest.description && (
+        <span className="text-sm font-semibold text-yellow-300">
+          {latest.type === "food" ? "\u{1F355}" : "\u{1F37A}"} {latest.description}
+        </span>
+      )}
+      <span className="text-xs text-neutral-500">
+        {reports.length === 1 ? "1 report" : `${reports.length} reports`} &middot; {ago}
+      </span>
+    </div>
+  );
+}
+
+function ScheduleEvent({
+  event,
+  reports,
+  onReported,
+}: {
+  event: CachedEvent;
+  reports: Report[];
+  onReported: () => void;
+}) {
   const hasFoodOrDrinks = event.food_status !== "none";
+  const hasReports = reports.length > 0;
   const time = formatTime(event.start_at, event.timezone);
   const endTime = formatTime(event.end_at, event.timezone);
 
@@ -92,6 +248,8 @@ function ScheduleEvent({ event }: { event: CachedEvent }) {
           ? "border-green-500/40 bg-green-950/20 hover:border-green-400/60"
           : event.food_status === "drinks_only"
           ? "border-blue-500/30 bg-blue-950/10 hover:border-blue-400/50"
+          : hasReports
+          ? "border-yellow-500/30 bg-yellow-950/10 hover:border-yellow-400/50"
           : "border-white/10 bg-white/5 hover:border-white/20"
       }`}
     >
@@ -109,6 +267,8 @@ function ScheduleEvent({ event }: { event: CachedEvent }) {
               ? "bg-green-400"
               : event.food_status === "drinks_only"
               ? "bg-blue-400"
+              : hasReports
+              ? "bg-yellow-400"
               : "bg-neutral-600"
           }`}
         />
@@ -121,6 +281,12 @@ function ScheduleEvent({ event }: { event: CachedEvent }) {
           <div className="mt-2">
             <FoodTag status={event.food_status} reason={event.food_reason} />
           </div>
+        )}
+        {hasReports && !hasFoodOrDrinks && (
+          <ReportBadges reports={reports} />
+        )}
+        {!hasFoodOrDrinks && !hasReports && (
+          <ReportButton eventId={event.id} onReported={onReported} />
         )}
         {event.address && (
           <p className="mt-1.5 text-xs text-neutral-500">{event.address}</p>
@@ -144,7 +310,9 @@ function ScheduleEvent({ event }: { event: CachedEvent }) {
 
 function SubscribeForm() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [message, setMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -171,7 +339,8 @@ function SubscribeForm() {
     <div className="rounded-xl border border-white/10 bg-white/5 p-6">
       <h3 className="font-semibold text-lg">Get the daily schedule</h3>
       <p className="text-sm text-neutral-400 mt-1">
-        We&apos;ll email you every morning with today&apos;s free food &amp; drink events.
+        We&apos;ll email you every morning with today&apos;s free food &amp;
+        drink events.
       </p>
       <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
         <input
@@ -203,6 +372,92 @@ function SubscribeForm() {
   );
 }
 
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+function NotificationBanner() {
+  const [show, setShow] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+
+  useEffect(() => {
+    if ("Notification" in window && "serviceWorker" in navigator) {
+      if (Notification.permission === "default") {
+        setShow(true);
+      } else if (Notification.permission === "granted") {
+        setSubscribed(true);
+        registerPush();
+      }
+    }
+  }, []);
+
+  async function registerPush() {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription && VAPID_PUBLIC_KEY) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+        });
+      }
+
+      if (subscription) {
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(subscription.toJSON()),
+        });
+      }
+    } catch (err) {
+      console.error("Push registration failed:", err);
+    }
+  }
+
+  async function handleEnable() {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      setSubscribed(true);
+      setShow(false);
+      await registerPush();
+    } else {
+      setShow(false);
+    }
+  }
+
+  if (subscribed) {
+    return (
+      <div className="mb-6 rounded-xl border border-green-500/20 bg-green-950/10 px-4 py-3 text-sm text-green-400 flex items-center gap-2">
+        &#128276; Notifications on &mdash; you&apos;ll get pinged when someone spots free food
+      </div>
+    );
+  }
+
+  if (!show) return null;
+
+  return (
+    <div className="mb-6 rounded-xl border border-yellow-500/20 bg-yellow-950/10 px-4 py-3 flex items-center justify-between gap-4">
+      <p className="text-sm text-yellow-400">
+        &#128276; Get notified instantly when someone spots free food
+      </p>
+      <button
+        onClick={handleEnable}
+        className="shrink-0 px-4 py-1.5 rounded-lg text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-400 transition-colors"
+      >
+        Enable
+      </button>
+    </div>
+  );
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -215,6 +470,7 @@ function timeAgo(iso: string): string {
 
 export default function Home() {
   const [events, setEvents] = useState<CachedEvent[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [syncedAt, setSyncedAt] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -222,13 +478,18 @@ export default function Home() {
 
   const loadCache = useCallback(async () => {
     try {
-      const res = await fetch("/api/events");
-      const data = await res.json();
-      setEvents(data.events ?? []);
-      setSyncedAt(data.synced_at ?? null);
+      const [eventsRes, reportsRes] = await Promise.all([
+        fetch("/api/events"),
+        fetch("/api/reports"),
+      ]);
+      const eventsData = await eventsRes.json();
+      const reportsData = await reportsRes.json();
+      setEvents(eventsData.events ?? []);
+      setSyncedAt(eventsData.synced_at ?? null);
+      setReports(reportsData.reports ?? []);
       setError(null);
     } catch {
-      setError("Failed to load cached events");
+      setError("Failed to load events");
     } finally {
       setLoading(false);
     }
@@ -237,6 +498,13 @@ export default function Home() {
   useEffect(() => {
     loadCache();
   }, [loadCache]);
+
+  // Register service worker
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(console.error);
+    }
+  }, []);
 
   async function handleSync() {
     setSyncing(true);
@@ -257,6 +525,14 @@ export default function Home() {
     }
   }
 
+  function handleReported() {
+    // Refresh reports
+    fetch("/api/reports")
+      .then((res) => res.json())
+      .then((data) => setReports(data.reports ?? []))
+      .catch(console.error);
+  }
+
   // Group events by day
   const schedule = useMemo(() => {
     const grouped: Record<string, CachedEvent[]> = {};
@@ -267,20 +543,20 @@ export default function Home() {
       if (!grouped[dayKey]) grouped[dayKey] = [];
       grouped[dayKey].push(event);
     }
-    // Sort days chronologically
     const sortedDays = Object.keys(grouped).sort();
-    // Sort events within each day by start time
     for (const day of sortedDays) {
       grouped[day].sort(
-        (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+        (a, b) =>
+          new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
       );
     }
     return sortedDays.map((day) => ({ day, events: grouped[day] }));
   }, [events]);
 
-  // Count food/drink events
   const foodCount = events.filter((e) => e.food_status === "food").length;
-  const drinkCount = events.filter((e) => e.food_status === "drinks_only").length;
+  const drinkCount = events.filter(
+    (e) => e.food_status === "drinks_only"
+  ).length;
 
   return (
     <main className="min-h-screen px-4 py-10 max-w-3xl mx-auto">
@@ -323,6 +599,8 @@ export default function Home() {
         </div>
       </header>
 
+      <NotificationBanner />
+
       {error && (
         <div className="text-center py-6 text-red-400 text-sm">
           <p>{error}</p>
@@ -344,23 +622,52 @@ export default function Home() {
 
       {/* Schedule */}
       {schedule.map(({ day, events: dayEvents }) => {
-        const hasFoodOrDrinks = dayEvents.some((e) => e.food_status !== "none");
         return (
           <section key={day} className="mb-10">
             <div className="flex items-center gap-3 mb-4">
               <h2 className="text-xl font-bold">{formatDayHeader(day)}</h2>
               <div className="flex-1 h-px bg-white/10" />
-              {hasFoodOrDrinks && (
-                <span className="text-xs text-green-400">
-                  &#127829;{" "}
-                  {dayEvents.filter((e) => e.food_status !== "none").length} with
-                  free stuff
-                </span>
-              )}
+              {(() => {
+                const food = dayEvents.filter(
+                  (e) => e.food_status === "food"
+                ).length;
+                const drinks = dayEvents.filter(
+                  (e) => e.food_status === "drinks_only"
+                ).length;
+                const reported = dayEvents.filter(
+                  (e) =>
+                    e.food_status === "none" &&
+                    reports.some((r) => r.event_id === e.id)
+                ).length;
+                return (
+                  <>
+                    {food > 0 && (
+                      <span className="text-xs text-green-400">
+                        &#127829; {food} with free food
+                      </span>
+                    )}
+                    {drinks > 0 && (
+                      <span className="text-xs text-blue-400">
+                        &#127866; {drinks} with free drinks
+                      </span>
+                    )}
+                    {reported > 0 && (
+                      <span className="text-xs text-yellow-400">
+                        &#128064; {reported} spotted
+                      </span>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <div className="flex flex-col gap-3">
               {dayEvents.map((event) => (
-                <ScheduleEvent key={event.id} event={event} />
+                <ScheduleEvent
+                  key={event.id}
+                  event={event}
+                  reports={reports.filter((r) => r.event_id === event.id)}
+                  onReported={handleReported}
+                />
               ))}
             </div>
           </section>

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { readCache } from "@/lib/cache";
-import { readSubscribers } from "@/lib/subscribers";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@convex/_generated/api";
 
 export const dynamic = "force-dynamic";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 function formatDate(iso: string, timezone: string): string {
   return new Date(iso).toLocaleString("en-US", {
@@ -18,7 +20,15 @@ function formatDate(iso: string, timezone: string): string {
 }
 
 function buildDigestHtml(
-  events: { name: string; start_at: string; end_at: string; timezone: string; url: string; food_status: string; food_reason: string }[]
+  events: {
+    name: string;
+    start_at: string;
+    end_at: string;
+    timezone: string;
+    url: string;
+    food_status: string;
+    food_reason: string;
+  }[]
 ): string {
   const foodEvents = events.filter((e) => e.food_status === "food");
   const drinkEvents = events.filter((e) => e.food_status === "drinks_only");
@@ -71,50 +81,65 @@ export async function POST(req: Request) {
   try {
     const resendKey = process.env.RESEND_API_KEY;
     if (!resendKey) {
-      return NextResponse.json({ error: "RESEND_API_KEY not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "RESEND_API_KEY not configured" },
+        { status: 500 }
+      );
     }
 
     const resend = new Resend(resendKey);
-    const cache = await readCache();
-    const subs = await readSubscribers();
+    const { events } = await convex.query(api.events.list);
+    const emails = await convex.query(api.subscribers.listAll);
 
-    if (subs.emails.length === 0) {
+    if (emails.length === 0) {
       return NextResponse.json({ ok: true, message: "No subscribers" });
     }
 
-    if (!cache || cache.events.length === 0) {
-      return NextResponse.json({ ok: true, message: "No events cached" });
+    if (events.length === 0) {
+      return NextResponse.json({ ok: true, message: "No events" });
     }
 
     // Filter to today's events (in SF timezone)
-    const today = new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles" });
-    const todayEvents = cache.events.filter((e) => {
-      const eventDay = new Date(e.start_at).toLocaleDateString("en-US", { timeZone: e.timezone || "America/Los_Angeles" });
-      return eventDay === today;
+    const today = new Date().toLocaleDateString("en-US", {
+      timeZone: "America/Los_Angeles",
     });
+    const todayEvents = events.filter(
+      (e: { start_at: string; timezone: string }) => {
+        const eventDay = new Date(e.start_at).toLocaleDateString("en-US", {
+          timeZone: e.timezone || "America/Los_Angeles",
+        });
+        return eventDay === today;
+      }
+    );
 
     const html = buildDigestHtml(todayEvents);
     const fromEmail = process.env.FROM_EMAIL || "digest@updates.example.com";
 
     const { error } = await resend.emails.send({
       from: fromEmail,
-      to: subs.emails,
+      to: emails,
       subject: `🍕 Free Food Today at Frontier Tower`,
       html,
     });
 
     if (error) {
       console.error("Resend error:", error);
-      return NextResponse.json({ error: "Failed to send digest" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to send digest" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       ok: true,
-      sent_to: subs.emails.length,
+      sent_to: emails.length,
       events_today: todayEvents.length,
     });
   } catch (error) {
     console.error("Digest error:", error);
-    return NextResponse.json({ error: "Failed to send digest" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to send digest" },
+      { status: 500 }
+    );
   }
 }

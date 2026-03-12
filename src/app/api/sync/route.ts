@@ -1,42 +1,43 @@
 import { NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@convex/_generated/api";
 import { fetchUpcomingEvents, classifyEvents } from "@/lib/luma";
-import { writeCache, type CachedEvent, type CacheData } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST() {
   try {
     const entries = await fetchUpcomingEvents();
     const classifications = await classifyEvents(entries);
 
-    const events: CachedEvent[] = entries.map((entry) => {
+    const syncedAt = new Date().toISOString();
+
+    const events = entries.map((entry) => {
       const { event } = entry;
       const classification = classifications[event.id] ?? {
         status: "none" as const,
         reason: "",
       };
       return {
-        id: event.id,
+        eventId: event.id,
         name: event.name,
-        start_at: event.start_at,
-        end_at: event.end_at,
+        startAt: event.start_at,
+        endAt: event.end_at,
         timezone: event.timezone,
         url: event.url,
-        cover_url: event.cover_url,
-        address: event.geo_address_json?.address ?? null,
-        food_status: classification.status,
-        food_reason: classification.reason,
+        coverUrl: event.cover_url,
+        address: event.geo_address_json?.address ?? undefined,
+        foodStatus: classification.status,
+        foodReason: classification.reason,
       };
     });
 
-    const cacheData: CacheData = {
-      synced_at: new Date().toISOString(),
-      events,
-    };
+    await convex.mutation(api.events.replaceAll, { events, syncedAt });
 
-    await writeCache(cacheData);
-
-    return NextResponse.json(cacheData);
+    const data = await convex.query(api.events.list);
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Sync failed:", error);
     return NextResponse.json(
