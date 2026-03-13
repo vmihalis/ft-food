@@ -92,7 +92,7 @@ function EmailSignup() {
 
   if (state === "done") {
     return (
-      <p className="text-sm text-green-400">
+      <p className="text-sm text-ft-green-light">
         &#10003; You&apos;re in! We&apos;ll email you when there&apos;s free food.
       </p>
     );
@@ -106,12 +106,12 @@ function EmailSignup() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="your@email.com"
         required
-        className="flex-1 min-w-0 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-white/25 transition-colors"
+        className="flex-1 min-w-0 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-ft-purple/40 transition-colors"
       />
       <button
         type="submit"
         disabled={state === "submitting"}
-        className="shrink-0 px-5 py-2.5 rounded-lg text-sm font-semibold bg-white text-black hover:bg-neutral-200 transition-colors disabled:opacity-50"
+        className="shrink-0 px-5 py-2.5 rounded-lg text-sm font-semibold bg-ft-purple text-white hover:bg-ft-purple-dark transition-colors disabled:opacity-50"
       >
         {state === "submitting" ? "..." : "Notify Me"}
       </button>
@@ -191,7 +191,7 @@ function NotificationBanner() {
   return (
     <button
       onClick={handleEnable}
-      className="text-sm text-yellow-400/80 hover:text-yellow-400 transition-colors"
+      className="text-sm text-ft-purple-light/80 hover:text-ft-purple-light transition-colors"
     >
       &#128276; Enable push notifications
     </button>
@@ -259,20 +259,20 @@ function FoodEventCard({
   const latest = reports.length > 0 ? reports[reports.length - 1] : null;
 
   const borderColor = isFood
-    ? "border-green-500/40"
+    ? "border-ft-green/40"
     : isDrinks
-    ? "border-blue-500/40"
-    : "border-yellow-500/40";
+    ? "border-ft-lavender/40"
+    : "border-ft-purple/40";
   const bgColor = isFood
-    ? "bg-green-950/30"
+    ? "bg-ft-green/8"
     : isDrinks
-    ? "bg-blue-950/20"
-    : "bg-yellow-950/20";
+    ? "bg-ft-lavender/8"
+    : "bg-ft-purple/8";
   const dotColor = isFood
-    ? "bg-green-400"
+    ? "bg-ft-green-light"
     : isDrinks
-    ? "bg-blue-400"
-    : "bg-yellow-400";
+    ? "bg-ft-lavender"
+    : "bg-ft-purple-light";
 
   return (
     <div
@@ -309,11 +309,11 @@ function FoodEventCard({
 
           {isFood && (
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-ft-green/20 text-ft-green-light border border-ft-green/30">
                 FREE FOOD
               </span>
               {event.food_reason && (
-                <span className="text-sm text-green-300">
+                <span className="text-sm text-ft-green-pale">
                   &#127829; {event.food_reason}
                 </span>
               )}
@@ -321,11 +321,11 @@ function FoodEventCard({
           )}
           {isDrinks && (
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-ft-lavender/20 text-ft-lavender border border-ft-lavender/30">
                 FREE DRINKS
               </span>
               {event.food_reason && (
-                <span className="text-sm text-blue-300">
+                <span className="text-sm text-ft-lavender-pale">
                   &#127867; {event.food_reason}
                 </span>
               )}
@@ -333,14 +333,14 @@ function FoodEventCard({
           )}
           {isCommunity && latest && (
             <div className="mt-1.5 flex flex-col gap-1">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 w-fit">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-ft-purple/20 text-ft-purple-light border border-ft-purple/30 w-fit">
                 &#128064;{" "}
                 {latest.reporter_name
                   ? `SPOTTED BY ${latest.reporter_name.toUpperCase()}`
                   : "COMMUNITY SPOTTED"}
               </span>
               {latest.description && (
-                <span className="text-sm text-yellow-300">
+                <span className="text-sm text-ft-purple-pale">
                   {latest.type === "food" ? "\u{1F355}" : "\u{1F37A}"}{" "}
                   {latest.description}
                 </span>
@@ -413,7 +413,7 @@ function ReportButton({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium text-yellow-400/80 bg-yellow-500/8 border border-yellow-500/20 hover:bg-yellow-500/15 hover:border-yellow-500/30 hover:text-yellow-400 transition-all"
+        className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium text-ft-purple-light/80 bg-ft-purple/8 border border-ft-purple/20 hover:bg-ft-purple/15 hover:border-ft-purple/30 hover:text-ft-purple-light transition-all"
       >
         &#128064; I see food!
       </button>
@@ -422,8 +422,8 @@ function ReportButton({
 
   if (submitted) {
     return (
-      <div className="mt-2 p-3 rounded-lg bg-green-500/10 border border-green-500/25">
-        <span className="text-green-400 text-sm font-medium">
+      <div className="mt-2 p-3 rounded-lg bg-ft-green/10 border border-ft-green/25">
+        <span className="text-ft-green-light text-sm font-medium">
           &#10003; Thanks{name ? `, ${name}` : ""}! Report is live.
         </span>
       </div>
@@ -436,9 +436,9 @@ function ReportButton({
         e.preventDefault();
         e.stopPropagation();
       }}
-      className="mt-2 p-3 rounded-lg bg-yellow-500/8 border border-yellow-500/20"
+      className="mt-2 p-3 rounded-lg bg-ft-purple/8 border border-ft-purple/20"
     >
-      <p className="text-xs font-medium text-yellow-400 mb-2">
+      <p className="text-xs font-medium text-ft-purple-light mb-2">
         What did you spot?
       </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
@@ -448,7 +448,7 @@ function ReportButton({
             onClick={() => setType("food")}
             className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               type === "food"
-                ? "bg-green-500/20 text-green-400 border border-green-500/40"
+                ? "bg-ft-green/20 text-ft-green-light border border-ft-green/40"
                 : "bg-white/5 text-neutral-500 border border-white/10"
             }`}
           >
@@ -459,7 +459,7 @@ function ReportButton({
             onClick={() => setType("drinks")}
             className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               type === "drinks"
-                ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
+                ? "bg-ft-lavender/20 text-ft-lavender border border-ft-lavender/40"
                 : "bg-white/5 text-neutral-500 border border-white/10"
             }`}
           >
@@ -472,7 +472,7 @@ function ReportButton({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What's there? (e.g. Pizza, beer)"
           maxLength={200}
-          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-yellow-500/30 transition-colors"
+          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-ft-purple/30 transition-colors"
         />
         <input
           type="text"
@@ -480,13 +480,13 @@ function ReportButton({
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name (optional)"
           maxLength={50}
-          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-yellow-500/30 transition-colors"
+          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-ft-purple/30 transition-colors"
         />
         <div className="flex gap-2">
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-yellow-500 text-black hover:bg-yellow-400 transition-colors disabled:opacity-50"
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-ft-purple text-white hover:bg-ft-purple-dark transition-colors disabled:opacity-50"
           >
             {submitting ? "Sending..." : "Submit"}
           </button>
@@ -541,7 +541,7 @@ function ScheduleEventRow({
         <span className="flex-1 min-w-0 text-sm text-neutral-300 truncate">
           {event.name}
         </span>
-        <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${showReport ? "text-neutral-400" : "text-green-400 bg-green-500/10 border border-green-500/20"}`}>
+        <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${showReport ? "text-neutral-400" : "text-ft-green-light bg-ft-green/10 border border-ft-green/20"}`}>
           {showReport ? "✕ Close" : "🍕 I see food!"}
         </span>
       </button>
@@ -560,12 +560,16 @@ function ScheduleEventRow({
 
 // ── Main page ───────────────────────────────────────────────────────────
 
+const EVENTS_PER_PAGE = 6;
+
 export default function Home() {
   const [events, setEvents] = useState<CachedEvent[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [syncedAt, setSyncedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [foodPage, setFoodPage] = useState(0);
+  const [reportPage, setReportPage] = useState(0);
 
   const loadCache = useCallback(async () => {
     try {
@@ -671,6 +675,52 @@ export default function Home() {
     0
   );
 
+  const totalOtherEvents = otherEventsByDay.reduce(
+    (sum, d) => sum + d.events.length,
+    0
+  );
+
+  const foodTotalPages = Math.max(1, Math.ceil(totalFoodEvents / EVENTS_PER_PAGE));
+  const reportTotalPages = Math.max(1, Math.ceil(totalOtherEvents / EVENTS_PER_PAGE));
+
+  // Paginate food events (flatten → slice → re-group by day)
+  const paginatedFoodByDay = useMemo(() => {
+    const flat = foodEventsByDay.flatMap(({ day, events: dayEvents }) =>
+      dayEvents.map((item) => ({ day, ...item }))
+    );
+    const start = foodPage * EVENTS_PER_PAGE;
+    const slice = flat.slice(start, start + EVENTS_PER_PAGE);
+    const grouped: { day: string; events: { event: CachedEvent; reports: Report[] }[] }[] = [];
+    for (const { day, event, reports: r } of slice) {
+      const last = grouped[grouped.length - 1];
+      if (last && last.day === day) {
+        last.events.push({ event, reports: r });
+      } else {
+        grouped.push({ day, events: [{ event, reports: r }] });
+      }
+    }
+    return grouped;
+  }, [foodEventsByDay, foodPage]);
+
+  // Paginate other events (flatten → slice → re-group by day)
+  const paginatedOtherByDay = useMemo(() => {
+    const flat = otherEventsByDay.flatMap(({ day, events: dayEvents }) =>
+      dayEvents.map((event) => ({ day, event }))
+    );
+    const start = reportPage * EVENTS_PER_PAGE;
+    const slice = flat.slice(start, start + EVENTS_PER_PAGE);
+    const grouped: { day: string; events: CachedEvent[] }[] = [];
+    for (const { day, event } of slice) {
+      const last = grouped[grouped.length - 1];
+      if (last && last.day === day) {
+        last.events.push(event);
+      } else {
+        grouped.push({ day, events: [event] });
+      }
+    }
+    return grouped;
+  }, [otherEventsByDay, reportPage]);
+
   return (
     <main className="min-h-screen">
       {/* ── Hero (full-bleed) ─────────────────────────────────────── */}
@@ -687,10 +737,10 @@ export default function Home() {
 
           {/* Title overlaid at top only */}
           <div className="absolute top-0 left-0 right-0 p-5 sm:p-8 text-center">
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-lg">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-ft-purple-light drop-shadow-lg">
               FT SNACKER
             </h1>
-            <p className="mt-1 text-base sm:text-lg font-medium text-white drop-shadow-lg">
+            <p className="mt-1 text-base sm:text-lg font-medium text-ft-purple-pale drop-shadow-lg">
               Free Food at Frontier Tower
             </p>
           </div>
@@ -703,13 +753,13 @@ export default function Home() {
         <div className="mt-4 flex gap-3 max-w-md mx-auto">
           <a
             href="#food"
-            className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 active:scale-95 transition-all"
+            className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-ft-purple text-white border border-ft-purple hover:bg-ft-purple-dark active:scale-95 transition-all"
           >
             &#127829; See Free Food
           </a>
           <a
             href="#report"
-            className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25 active:scale-95 transition-all"
+            className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-ft-purple/15 text-ft-purple-light border border-ft-purple/30 hover:bg-ft-purple/25 active:scale-95 transition-all"
           >
             &#128064; Report Food
           </a>
@@ -758,7 +808,7 @@ export default function Home() {
             <h2 className="text-lg font-bold">Food &amp; Drinks</h2>
             <div className="flex-1 h-px bg-white/10" />
             {totalFoodEvents > 0 && (
-              <span className="text-xs text-green-400 bg-green-500/10 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs text-ft-green-light bg-ft-green/10 px-2.5 py-0.5 rounded-full">
                 {totalFoodEvents} event{totalFoodEvents !== 1 ? "s" : ""}
               </span>
             )}
@@ -774,24 +824,47 @@ export default function Home() {
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-5">
-              {foodEventsByDay.map(({ day, events: dayFoodEvents }) => (
-                <div key={day}>
-                  <h3 className="text-sm font-semibold text-neutral-400 mb-2">
-                    {formatDayHeader(day)}
-                  </h3>
-                  <div className="flex flex-col gap-3">
-                    {dayFoodEvents.map(({ event, reports: eventReports }) => (
-                      <FoodEventCard
-                        key={event.id}
-                        event={event}
-                        reports={eventReports}
-                      />
-                    ))}
+            <>
+              <div className="flex flex-col gap-5">
+                {paginatedFoodByDay.map(({ day, events: dayFoodEvents }) => (
+                  <div key={day}>
+                    <h3 className="text-sm font-semibold text-neutral-400 mb-2">
+                      {formatDayHeader(day)}
+                    </h3>
+                    <div className="flex flex-col gap-3">
+                      {dayFoodEvents.map(({ event, reports: eventReports }) => (
+                        <FoodEventCard
+                          key={event.id}
+                          event={event}
+                          reports={eventReports}
+                        />
+                      ))}
+                    </div>
                   </div>
+                ))}
+              </div>
+              {foodTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-5">
+                  <button
+                    onClick={() => setFoodPage((p) => Math.max(0, p - 1))}
+                    disabled={foodPage === 0}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-neutral-500">
+                    {foodPage + 1} / {foodTotalPages}
+                  </span>
+                  <button
+                    onClick={() => setFoodPage((p) => Math.min(foodTotalPages - 1, p + 1))}
+                    disabled={foodPage >= foodTotalPages - 1}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </section>
       )}
@@ -809,7 +882,7 @@ export default function Home() {
             At an event right now and see food? Tap the button to let everyone know.
           </p>
 
-          {otherEventsByDay.map(({ day, events: dayEvents }) => (
+          {paginatedOtherByDay.map(({ day, events: dayEvents }) => (
             <div key={day} className="mb-6">
               <h3 className="text-sm font-semibold text-neutral-500 mb-2">
                 {formatDayHeader(day)}
@@ -826,6 +899,27 @@ export default function Home() {
               </div>
             </div>
           ))}
+          {reportTotalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <button
+                onClick={() => setReportPage((p) => Math.max(0, p - 1))}
+                disabled={reportPage === 0}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-neutral-500">
+                {reportPage + 1} / {reportTotalPages}
+              </span>
+              <button
+                onClick={() => setReportPage((p) => Math.min(reportTotalPages - 1, p + 1))}
+                disabled={reportPage >= reportTotalPages - 1}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </section>
       )}
 

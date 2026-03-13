@@ -2,7 +2,7 @@
 
 :root {
   --background: #0a0a0a;
-  --foreground: #ededed;
+  --foreground: #EBEBEB;
 }
 
 @theme inline {
@@ -10,6 +10,24 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Brand Purple */
+  --color-ft-purple: #764AE2;
+  --color-ft-purple-light: #938DEE;
+  --color-ft-purple-pale: #A4A7F3;
+  --color-ft-purple-dark: #7F68E9;
+
+  /* Quantum Green (food) */
+  --color-ft-green: #47B70B;
+  --color-ft-green-light: #88E755;
+  --color-ft-green-pale: #DFFECD;
+  --color-ft-green-dark: #39A300;
+
+  /* Lavender (drinks) */
+  --color-ft-lavender: #B4B4F6;
+  --color-ft-lavender-light: #C2C9FA;
+  --color-ft-lavender-pale: #C8D2FC;
+  --color-ft-lavender-dark: #AFABF1;
 }
 
 body {
