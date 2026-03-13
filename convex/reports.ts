@@ -10,6 +10,7 @@ export const list = query({
         event_id: r.eventId,
         type: r.type,
         description: r.description,
+        reporter_name: r.reporterName || "",
         reported_at: r.reportedAt,
       })),
     };
@@ -21,12 +22,14 @@ export const add = mutation({
     eventId: v.string(),
     type: v.union(v.literal("food"), v.literal("drinks")),
     description: v.string(),
+    reporterName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await ctx.db.insert("reports", {
       eventId: args.eventId,
       type: args.type,
       description: args.description,
+      reporterName: args.reporterName || undefined,
       reportedAt: new Date().toISOString(),
     });
   },

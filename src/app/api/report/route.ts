@@ -9,7 +9,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: Request) {
   try {
-    const { event_id, type, description } = await req.json();
+    const { event_id, type, description, reporter_name } = await req.json();
 
     if (!event_id || !type) {
       return NextResponse.json(
@@ -25,10 +25,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const trimmedName = reporter_name?.trim().slice(0, 50) || undefined;
+
     await convex.mutation(api.reports.add, {
       eventId: event_id,
       type,
       description: description?.slice(0, 200) || "",
+      reporterName: trimmedName,
     });
 
     // Find event name for the notification
@@ -38,9 +41,10 @@ export async function POST(req: Request) {
 
     const emoji = type === "food" ? "\u{1F355}" : "\u{1F37A}";
     const label = type === "food" ? "Free food" : "Free drinks";
+    const spottedBy = trimmedName ? ` (spotted by ${trimmedName})` : "";
     const body = description
-      ? `${description} at ${eventName}`
-      : `${label} spotted at ${eventName}`;
+      ? `${description} at ${eventName}${spottedBy}`
+      : `${label} spotted at ${eventName}${spottedBy}`;
 
     try {
       await sendPushToAll({

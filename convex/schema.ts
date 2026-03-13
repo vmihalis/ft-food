@@ -24,6 +24,7 @@ export default defineSchema({
     eventId: v.string(),
     type: v.union(v.literal("food"), v.literal("drinks")),
     description: v.string(),
+    reporterName: v.optional(v.string()),
     reportedAt: v.string(),
   }).index("by_eventId", ["eventId"]),
 
@@ -32,6 +33,11 @@ export default defineSchema({
     p256dh: v.string(),
     auth: v.string(),
   }).index("by_endpoint", ["endpoint"]),
+
+  emailSubscribers: defineTable({
+    email: v.string(),
+    subscribedAt: v.string(),
+  }).index("by_email", ["email"]),
 
   syncMeta: defineTable({
     key: v.string(),

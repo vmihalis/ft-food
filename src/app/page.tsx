@@ -8,6 +8,7 @@ interface Report {
   event_id: string;
   type: "food" | "drinks";
   description: string;
+  reporter_name: string;
   reported_at: string;
 }
 
@@ -54,259 +55,74 @@ function formatDayHeader(dateKey: string): string {
   });
 }
 
-function FoodTag({ status, reason }: { status: FoodStatus; reason: string }) {
-  if (status === "food") {
-    return (
-      <div className="flex flex-col gap-1">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30 w-fit">
-          FREE FOOD
-        </span>
-        {reason && (
-          <span className="text-sm font-semibold text-green-300">
-            &#127869; {reason}
-          </span>
-        )}
-      </div>
-    );
-  }
-  if (status === "drinks_only") {
-    return (
-      <div className="flex flex-col gap-1">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 w-fit">
-          FREE DRINKS
-        </span>
-        {reason && (
-          <span className="text-sm font-semibold text-blue-300">
-            &#127867; {reason}
-          </span>
-        )}
-      </div>
-    );
-  }
-  return null;
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function ReportButton({
-  eventId,
-  onReported,
-}: {
-  eventId: string;
-  onReported: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [type, setType] = useState<"food" | "drinks">("food");
-  const [description, setDescription] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+// ── Email signup ────────────────────────────────────────────────────────
+
+function EmailSignup() {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "submitting" | "done" | "error">(
+    "idle"
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    e.stopPropagation();
-    setSubmitting(true);
+    if (!email.trim()) return;
+    setState("submitting");
     try {
-      await fetch("/api/report", {
+      const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_id: eventId, type, description }),
+        body: JSON.stringify({ email }),
       });
-      setOpen(false);
-      setDescription("");
-      onReported();
-    } finally {
-      setSubmitting(false);
+      if (!res.ok) throw new Error();
+      setState("done");
+    } catch {
+      setState("error");
     }
   }
 
-  if (!open) {
+  if (state === "done") {
     return (
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        className="mt-2 text-xs text-yellow-500 hover:text-yellow-400 transition-colors"
-      >
-        &#128064; I see free food/drinks here!
-      </button>
+      <p className="text-sm text-green-400">
+        &#10003; You&apos;re in! We&apos;ll email you when there&apos;s free food.
+      </p>
     );
   }
 
   return (
-    <div
-      onClick={(e) => e.preventDefault()}
-      className="mt-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20"
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setType("food");
-            }}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-              type === "food"
-                ? "bg-green-500/30 text-green-400 border border-green-500/40"
-                : "bg-white/5 text-neutral-400 border border-white/10"
-            }`}
-          >
-            &#127829; Food
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setType("drinks");
-            }}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-              type === "drinks"
-                ? "bg-blue-500/30 text-blue-400 border border-blue-500/40"
-                : "bg-white/5 text-neutral-400 border border-white/10"
-            }`}
-          >
-            &#127866; Drinks
-          </button>
-        </div>
-        <input
-          type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="What do you see? (e.g. Pizza, beer)"
-          maxLength={200}
-          className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-white/30"
-        />
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={submitting}
-            onClick={(e) => e.stopPropagation()}
-            className="px-4 py-1.5 rounded-lg text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-400 transition-colors disabled:opacity-50"
-          >
-            {submitting ? "Sending..." : "Report"}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(false);
-            }}
-            className="px-4 py-1.5 rounded-lg text-xs text-neutral-400 hover:text-neutral-300"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-function ReportBadges({ reports }: { reports: Report[] }) {
-  if (reports.length === 0) return null;
-
-  const latest = reports[reports.length - 1];
-  const ago = timeAgo(latest.reported_at);
-
-  return (
-    <div className="mt-2 flex flex-col gap-1">
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 w-fit">
-        &#128064; SPOTTED BY ATTENDEE
-      </span>
-      {latest.description && (
-        <span className="text-sm font-semibold text-yellow-300">
-          {latest.type === "food" ? "\u{1F355}" : "\u{1F37A}"} {latest.description}
-        </span>
+    <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-md">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="your@email.com"
+        required
+        className="flex-1 min-w-0 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-white/25 transition-colors"
+      />
+      <button
+        type="submit"
+        disabled={state === "submitting"}
+        className="shrink-0 px-5 py-2.5 rounded-lg text-sm font-semibold bg-white text-black hover:bg-neutral-200 transition-colors disabled:opacity-50"
+      >
+        {state === "submitting" ? "..." : "Notify Me"}
+      </button>
+      {state === "error" && (
+        <span className="text-xs text-red-400 self-center">Failed</span>
       )}
-      <span className="text-xs text-neutral-500">
-        {reports.length === 1 ? "1 report" : `${reports.length} reports`} &middot; {ago}
-      </span>
-    </div>
+    </form>
   );
 }
 
-function ScheduleEvent({
-  event,
-  reports,
-  onReported,
-}: {
-  event: CachedEvent;
-  reports: Report[];
-  onReported: () => void;
-}) {
-  const hasFoodOrDrinks = event.food_status !== "none";
-  const hasReports = reports.length > 0;
-  const time = formatTime(event.start_at, event.timezone);
-  const endTime = formatTime(event.end_at, event.timezone);
-
-  return (
-    <a
-      href={event.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`flex gap-4 items-start p-4 rounded-xl border transition-all hover:scale-[1.01] hover:shadow-lg ${
-        event.food_status === "food"
-          ? "border-green-500/40 bg-green-950/20 hover:border-green-400/60"
-          : event.food_status === "drinks_only"
-          ? "border-blue-500/30 bg-blue-950/10 hover:border-blue-400/50"
-          : hasReports
-          ? "border-yellow-500/30 bg-yellow-950/10 hover:border-yellow-400/50"
-          : "border-white/10 bg-white/5 hover:border-white/20"
-      }`}
-    >
-      {/* Time column */}
-      <div className="shrink-0 w-20 text-right pt-0.5">
-        <div className="text-sm font-medium text-neutral-300">{time}</div>
-        <div className="text-xs text-neutral-600">{endTime}</div>
-      </div>
-
-      {/* Timeline dot */}
-      <div className="shrink-0 flex flex-col items-center pt-1.5">
-        <div
-          className={`w-3 h-3 rounded-full ${
-            event.food_status === "food"
-              ? "bg-green-400"
-              : event.food_status === "drinks_only"
-              ? "bg-blue-400"
-              : hasReports
-              ? "bg-yellow-400"
-              : "bg-neutral-600"
-          }`}
-        />
-      </div>
-
-      {/* Event details */}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold leading-snug">{event.name}</h3>
-        {hasFoodOrDrinks && (
-          <div className="mt-2">
-            <FoodTag status={event.food_status} reason={event.food_reason} />
-          </div>
-        )}
-        {hasReports && !hasFoodOrDrinks && (
-          <ReportBadges reports={reports} />
-        )}
-        {!hasFoodOrDrinks && !hasReports && (
-          <ReportButton eventId={event.id} onReported={onReported} />
-        )}
-        {event.address && (
-          <p className="mt-1.5 text-xs text-neutral-500">{event.address}</p>
-        )}
-      </div>
-
-      {/* Cover image */}
-      {event.cover_url && (
-        <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={event.cover_url}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
-    </a>
-  );
-}
+// ── Push notification prompt ────────────────────────────────────────────
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -342,7 +158,8 @@ function NotificationBanner() {
       if (!subscription && VAPID_PUBLIC_KEY) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            .buffer as ArrayBuffer,
         });
       }
 
@@ -369,30 +186,19 @@ function NotificationBanner() {
     }
   }
 
-  if (subscribed) {
-    return (
-      <div className="mb-6 rounded-xl border border-green-500/20 bg-green-950/10 px-4 py-3 text-sm text-green-400 flex items-center gap-2">
-        &#128276; Notifications on &mdash; you&apos;ll get pinged when someone spots free food
-      </div>
-    );
-  }
-
-  if (!show) return null;
+  if (subscribed || !show) return null;
 
   return (
-    <div className="mb-6 rounded-xl border border-yellow-500/20 bg-yellow-950/10 px-4 py-3 flex items-center justify-between gap-4">
-      <p className="text-sm text-yellow-400">
-        &#128276; Get notified instantly when someone spots free food
-      </p>
-      <button
-        onClick={handleEnable}
-        className="shrink-0 px-4 py-1.5 rounded-lg text-xs font-medium bg-yellow-500 text-black hover:bg-yellow-400 transition-colors"
-      >
-        Enable
-      </button>
-    </div>
+    <button
+      onClick={handleEnable}
+      className="text-sm text-yellow-400/80 hover:text-yellow-400 transition-colors"
+    >
+      &#128276; Enable push notifications
+    </button>
   );
 }
+
+// ── Install PWA button ──────────────────────────────────────────────────
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -404,7 +210,6 @@ function InstallButton() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Hide if already installed as standalone PWA
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
     function handler(e: Event) {
@@ -430,22 +235,319 @@ function InstallButton() {
   return (
     <button
       onClick={handleInstall}
-      className="px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/20"
+      className="text-sm text-neutral-400 hover:text-white transition-colors"
     >
       Install App
     </button>
   );
 }
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+// ── Highlighted food/drinks event card ──────────────────────────────────
+
+function FoodEventCard({
+  event,
+  reports,
+}: {
+  event: CachedEvent;
+  reports: Report[];
+}) {
+  const time = formatTime(event.start_at, event.timezone);
+  const endTime = formatTime(event.end_at, event.timezone);
+  const isFood = event.food_status === "food";
+  const isDrinks = event.food_status === "drinks_only";
+  const isCommunity = !isFood && !isDrinks && reports.length > 0;
+  const latest = reports.length > 0 ? reports[reports.length - 1] : null;
+
+  const borderColor = isFood
+    ? "border-green-500/40"
+    : isDrinks
+    ? "border-blue-500/40"
+    : "border-yellow-500/40";
+  const bgColor = isFood
+    ? "bg-green-950/30"
+    : isDrinks
+    ? "bg-blue-950/20"
+    : "bg-yellow-950/20";
+  const dotColor = isFood
+    ? "bg-green-400"
+    : isDrinks
+    ? "bg-blue-400"
+    : "bg-yellow-400";
+
+  return (
+    <div
+      className={`p-4 rounded-xl border ${borderColor} ${bgColor} transition-all`}
+    >
+      <div className="flex gap-4 items-start">
+        {event.cover_url && (
+          <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={event.cover_url}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`w-2.5 h-2.5 rounded-full ${dotColor} shrink-0`} />
+            <span className="text-xs text-neutral-400">
+              {time} &ndash; {endTime}
+            </span>
+          </div>
+
+          <a
+            href={event.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold leading-snug hover:underline"
+          >
+            {event.name}
+          </a>
+
+          {isFood && (
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+                FREE FOOD
+              </span>
+              {event.food_reason && (
+                <span className="text-sm text-green-300">
+                  &#127829; {event.food_reason}
+                </span>
+              )}
+            </div>
+          )}
+          {isDrinks && (
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                FREE DRINKS
+              </span>
+              {event.food_reason && (
+                <span className="text-sm text-blue-300">
+                  &#127867; {event.food_reason}
+                </span>
+              )}
+            </div>
+          )}
+          {isCommunity && latest && (
+            <div className="mt-1.5 flex flex-col gap-1">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 w-fit">
+                &#128064;{" "}
+                {latest.reporter_name
+                  ? `SPOTTED BY ${latest.reporter_name.toUpperCase()}`
+                  : "COMMUNITY SPOTTED"}
+              </span>
+              {latest.description && (
+                <span className="text-sm text-yellow-300">
+                  {latest.type === "food" ? "\u{1F355}" : "\u{1F37A}"}{" "}
+                  {latest.description}
+                </span>
+              )}
+              <span className="text-xs text-neutral-500">
+                {reports.length === 1
+                  ? "1 report"
+                  : `${reports.length} reports`}{" "}
+                &middot; {timeAgo(latest.reported_at)}
+              </span>
+            </div>
+          )}
+
+          {event.address && (
+            <p className="mt-1 text-xs text-neutral-500">{event.address}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
+
+// ── Report form ─────────────────────────────────────────────────────────
+
+function ReportButton({
+  eventId,
+  onReported,
+}: {
+  eventId: string;
+  onReported: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState<"food" | "drinks">("food");
+  const [description, setDescription] = useState("");
+  const [name, setName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setSubmitting(true);
+    try {
+      await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: eventId,
+          type,
+          description,
+          reporter_name: name || undefined,
+        }),
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        setOpen(false);
+        setSubmitted(false);
+        setDescription("");
+        setName("");
+        onReported();
+      }, 1500);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium text-yellow-400/80 bg-yellow-500/8 border border-yellow-500/20 hover:bg-yellow-500/15 hover:border-yellow-500/30 hover:text-yellow-400 transition-all"
+      >
+        &#128064; I see food!
+      </button>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="mt-2 p-3 rounded-lg bg-green-500/10 border border-green-500/25">
+        <span className="text-green-400 text-sm font-medium">
+          &#10003; Thanks{name ? `, ${name}` : ""}! Report is live.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      className="mt-2 p-3 rounded-lg bg-yellow-500/8 border border-yellow-500/20"
+    >
+      <p className="text-xs font-medium text-yellow-400 mb-2">
+        What did you spot?
+      </p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setType("food")}
+            className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              type === "food"
+                ? "bg-green-500/20 text-green-400 border border-green-500/40"
+                : "bg-white/5 text-neutral-500 border border-white/10"
+            }`}
+          >
+            &#127829; Food
+          </button>
+          <button
+            type="button"
+            onClick={() => setType("drinks")}
+            className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              type === "drinks"
+                ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
+                : "bg-white/5 text-neutral-500 border border-white/10"
+            }`}
+          >
+            &#127866; Drinks
+          </button>
+        </div>
+        <input
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What's there? (e.g. Pizza, beer)"
+          maxLength={200}
+          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-yellow-500/30 transition-colors"
+        />
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name (optional)"
+          maxLength={50}
+          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm placeholder:text-neutral-600 focus:outline-none focus:border-yellow-500/30 transition-colors"
+        />
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-yellow-500 text-black hover:bg-yellow-400 transition-colors disabled:opacity-50"
+          >
+            {submitting ? "Sending..." : "Submit"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setDescription("");
+              setName("");
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ── Compact schedule event row ──────────────────────────────────────────
+
+function ScheduleEventRow({
+  event,
+  reports,
+  onReported,
+}: {
+  event: CachedEvent;
+  reports: Report[];
+  onReported: () => void;
+}) {
+  const time = formatTime(event.start_at, event.timezone);
+  const hasFoodOrDrinks = event.food_status !== "none";
+  const hasReports = reports.length > 0;
+
+  if (hasFoodOrDrinks || hasReports) {
+    return null;
+  }
+
+  const now = Date.now();
+  const startMs = new Date(event.start_at).getTime();
+  const endMs = new Date(event.end_at).getTime();
+  const canReport = now >= startMs - 30 * 60 * 1000 && now <= endMs;
+
+  return (
+    <div className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+      <div className="flex items-center gap-3 py-2.5 px-3">
+        <span className="shrink-0 text-xs text-neutral-500 w-16 text-right tabular-nums">
+          {time}
+        </span>
+        <div className="w-2 h-2 rounded-full bg-neutral-700 shrink-0" />
+        <span className="flex-1 min-w-0 text-sm text-neutral-300 truncate">
+          {event.name}
+        </span>
+        {canReport && (
+          <ReportButton eventId={event.id} onReported={onReported} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ───────────────────────────────────────────────────────────
 
 export default function Home() {
   const [events, setEvents] = useState<CachedEvent[]>([]);
@@ -477,7 +579,6 @@ export default function Home() {
     loadCache();
   }, [loadCache]);
 
-  // Register service worker
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(console.error);
@@ -485,75 +586,147 @@ export default function Home() {
   }, []);
 
   function handleReported() {
-    // Refresh reports
     fetch("/api/reports")
       .then((res) => res.json())
       .then((data) => setReports(data.reports ?? []))
       .catch(console.error);
   }
 
-  // Group events by day
-  const schedule = useMemo(() => {
-    const grouped: Record<string, CachedEvent[]> = {};
+  const { foodEventsByDay, otherEventsByDay } = useMemo(() => {
+    const food: { event: CachedEvent; reports: Report[] }[] = [];
+    const other: CachedEvent[] = [];
+
     for (const event of events) {
+      const eventReports = reports.filter((r) => r.event_id === event.id);
+      if (event.food_status !== "none" || eventReports.length > 0) {
+        food.push({ event, reports: eventReports });
+      } else {
+        other.push(event);
+      }
+    }
+
+    // Group food events by day
+    const foodGrouped: Record<
+      string,
+      { event: CachedEvent; reports: Report[] }[]
+    > = {};
+    for (const item of food) {
+      const dayKey = new Date(item.event.start_at).toLocaleDateString("en-CA", {
+        timeZone: item.event.timezone || "America/Los_Angeles",
+      });
+      if (!foodGrouped[dayKey]) foodGrouped[dayKey] = [];
+      foodGrouped[dayKey].push(item);
+    }
+    const foodDays = Object.keys(foodGrouped).sort();
+    for (const day of foodDays) {
+      foodGrouped[day].sort(
+        (a, b) =>
+          new Date(a.event.start_at).getTime() -
+          new Date(b.event.start_at).getTime()
+      );
+    }
+
+    // Group other events by day
+    const otherGrouped: Record<string, CachedEvent[]> = {};
+    for (const event of other) {
       const dayKey = new Date(event.start_at).toLocaleDateString("en-CA", {
         timeZone: event.timezone || "America/Los_Angeles",
       });
-      if (!grouped[dayKey]) grouped[dayKey] = [];
-      grouped[dayKey].push(event);
+      if (!otherGrouped[dayKey]) otherGrouped[dayKey] = [];
+      otherGrouped[dayKey].push(event);
     }
-    const sortedDays = Object.keys(grouped).sort();
-    for (const day of sortedDays) {
-      grouped[day].sort(
+    const otherDays = Object.keys(otherGrouped).sort();
+    for (const day of otherDays) {
+      otherGrouped[day].sort(
         (a, b) =>
           new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
       );
     }
-    return sortedDays.map((day) => ({ day, events: grouped[day] }));
-  }, [events]);
 
-  const foodCount = events.filter((e) => e.food_status === "food").length;
-  const drinkCount = events.filter(
-    (e) => e.food_status === "drinks_only"
-  ).length;
+    return {
+      foodEventsByDay: foodDays.map((day) => ({
+        day,
+        events: foodGrouped[day],
+      })),
+      otherEventsByDay: otherDays.map((day) => ({
+        day,
+        events: otherGrouped[day],
+      })),
+    };
+  }, [events, reports]);
+
+  const totalFoodEvents = foodEventsByDay.reduce(
+    (sum, d) => sum + d.events.length,
+    0
+  );
 
   return (
-    <main className="min-h-screen px-4 py-10 max-w-3xl mx-auto">
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-bold tracking-tight">
-          &#127829; Free Food at Frontier Tower
-        </h1>
-        <p className="mt-3 text-neutral-400 text-lg">
-          Daily schedule of free food &amp; drinks at 995 Market St, SF
-        </p>
+    <main className="min-h-screen max-w-3xl mx-auto">
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <header className="relative mb-8">
+        {/* Full-width hero image */}
+        <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/hero.png"
+            alt="FT Snacker"
+            className="w-full h-full object-cover"
+          />
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
-        {(foodCount > 0 || drinkCount > 0) && (
-          <div className="mt-4 flex items-center justify-center gap-3">
-            {foodCount > 0 && (
-              <span className="text-sm text-green-400 bg-green-500/10 px-3 py-1 rounded-full">
-                &#127829; {foodCount} food event{foodCount !== 1 ? "s" : ""}
-              </span>
-            )}
-            {drinkCount > 0 && (
-              <span className="text-sm text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full">
-                &#127866; {drinkCount} drink event{drinkCount !== 1 ? "s" : ""}
-              </span>
-            )}
+          {/* Text overlay on image */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 text-center">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-lg">
+              FT SNACKER
+            </h1>
+            <p className="mt-2 text-sm sm:text-base text-neutral-300">
+              Free Food at Frontier Tower
+            </p>
           </div>
-        )}
+        </div>
 
-        <div className="mt-5 flex items-center justify-center gap-4">
-          <InstallButton />
+        {/* Content below hero image */}
+        <div className="px-5 pt-5">
+          <p className="text-center text-sm text-neutral-500">
+            Community-powered &mdash; anyone can report food they spot.
+          </p>
+
+          {/* Quick actions */}
+          <div className="mt-5 flex gap-3">
+            <a
+              href="#food"
+              className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 active:scale-95 transition-all"
+            >
+              &#127829; See Free Food
+            </a>
+            <a
+              href="#report"
+              className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25 active:scale-95 transition-all"
+            >
+              &#128064; Report Food
+            </a>
+          </div>
+
+          {/* Email signup */}
+          <div className="mt-5 flex flex-col items-center gap-3">
+            <EmailSignup />
+            <div className="flex items-center gap-4 text-sm">
+              <NotificationBanner />
+              <InstallButton />
+            </div>
+          </div>
+
           {syncedAt && (
-            <span className="text-xs text-neutral-600">
-              Last synced {timeAgo(syncedAt)}
-            </span>
+            <p className="mt-3 text-center text-xs text-neutral-600">
+              Events updated {timeAgo(syncedAt)}
+            </p>
           )}
         </div>
       </header>
 
-      <NotificationBanner />
-
+      {/* ── Content ──────────────────────────────────────────────── */}
+      <div className="px-5">
       {error && (
         <div className="text-center py-6 text-red-400 text-sm">
           <p>{error}</p>
@@ -573,63 +746,88 @@ export default function Home() {
         </div>
       )}
 
-      {/* Schedule */}
-      {schedule.map(({ day, events: dayEvents }) => {
-        return (
-          <section key={day} className="mb-10">
-            <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-xl font-bold">{formatDayHeader(day)}</h2>
-              <div className="flex-1 h-px bg-white/10" />
-              {(() => {
-                const food = dayEvents.filter(
-                  (e) => e.food_status === "food"
-                ).length;
-                const drinks = dayEvents.filter(
-                  (e) => e.food_status === "drinks_only"
-                ).length;
-                const reported = dayEvents.filter(
-                  (e) =>
-                    e.food_status === "none" &&
-                    reports.some((r) => r.event_id === e.id)
-                ).length;
-                return (
-                  <>
-                    {food > 0 && (
-                      <span className="text-xs text-green-400">
-                        &#127829; {food} with free food
-                      </span>
-                    )}
-                    {drinks > 0 && (
-                      <span className="text-xs text-blue-400">
-                        &#127866; {drinks} with free drinks
-                      </span>
-                    )}
-                    {reported > 0 && (
-                      <span className="text-xs text-yellow-400">
-                        &#128064; {reported} spotted
-                      </span>
-                    )}
-                  </>
-                );
-              })()}
+      {/* ── Food & Drinks section ─────────────────────────────────── */}
+      {!loading && events.length > 0 && (
+        <section id="food" className="mb-10 scroll-mt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-lg font-bold">Food &amp; Drinks</h2>
+            <div className="flex-1 h-px bg-white/10" />
+            {totalFoodEvents > 0 && (
+              <span className="text-xs text-green-400 bg-green-500/10 px-2.5 py-0.5 rounded-full">
+                {totalFoodEvents} event{totalFoodEvents !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          {foodEventsByDay.length === 0 ? (
+            <div className="py-8 text-center rounded-xl border border-dashed border-white/10 bg-white/[0.02]">
+              <p className="text-neutral-500 text-sm">
+                No food or drinks spotted yet
+              </p>
+              <p className="text-neutral-600 text-xs mt-1">
+                See something at an event below? Hit &#128064; to report it!
+              </p>
             </div>
-            <div className="flex flex-col gap-3">
-              {dayEvents.map((event) => (
-                <ScheduleEvent
-                  key={event.id}
-                  event={event}
-                  reports={reports.filter((r) => r.event_id === event.id)}
-                  onReported={handleReported}
-                />
+          ) : (
+            <div className="flex flex-col gap-5">
+              {foodEventsByDay.map(({ day, events: dayFoodEvents }) => (
+                <div key={day}>
+                  <h3 className="text-sm font-semibold text-neutral-400 mb-2">
+                    {formatDayHeader(day)}
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    {dayFoodEvents.map(({ event, reports: eventReports }) => (
+                      <FoodEventCard
+                        key={event.id}
+                        event={event}
+                        reports={eventReports}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
-          </section>
-        );
-      })}
+          )}
+        </section>
+      )}
 
-      <footer className="text-center text-neutral-600 text-xs pb-8">
+      {/* ── Report food section ─────────────────────────────────── */}
+      {otherEventsByDay.length > 0 && (
+        <section id="report" className="scroll-mt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-lg font-bold text-neutral-400">
+              &#128064; Report Food at an Event
+            </h2>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+          <p className="text-sm text-neutral-500 mb-4">
+            At an event right now and see food? Tap the button to let everyone know.
+          </p>
+
+          {otherEventsByDay.map(({ day, events: dayEvents }) => (
+            <div key={day} className="mb-6">
+              <h3 className="text-sm font-semibold text-neutral-500 mb-2">
+                {formatDayHeader(day)}
+              </h3>
+              <div className="flex flex-col gap-1.5">
+                {dayEvents.map((event) => (
+                  <ScheduleEventRow
+                    key={event.id}
+                    event={event}
+                    reports={reports.filter((r) => r.event_id === event.id)}
+                    onReported={handleReported}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <footer className="text-center text-neutral-600 text-xs pb-8 mt-10">
         <p>Data from Luma &middot; Frontier Tower SF</p>
       </footer>
+      </div>
     </main>
   );
 }
