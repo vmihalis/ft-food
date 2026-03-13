@@ -368,11 +368,13 @@ function FoodEventCard({
 function ReportButton({
   eventId,
   onReported,
+  defaultOpen = false,
 }: {
   eventId: string;
   onReported: () => void;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [type, setType] = useState<"food" | "drinks">("food");
   const [description, setDescription] = useState("");
   const [name, setName] = useState("");
@@ -516,6 +518,7 @@ function ScheduleEventRow({
   reports: Report[];
   onReported: () => void;
 }) {
+  const [showReport, setShowReport] = useState(false);
   const time = formatTime(event.start_at, event.timezone);
   const hasFoodOrDrinks = event.food_status !== "none";
   const hasReports = reports.length > 0;
@@ -524,14 +527,13 @@ function ScheduleEventRow({
     return null;
   }
 
-  const now = Date.now();
-  const startMs = new Date(event.start_at).getTime();
-  const endMs = new Date(event.end_at).getTime();
-  const canReport = now >= startMs - 30 * 60 * 1000 && now <= endMs;
-
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-      <div className="flex items-center gap-3 py-2.5 px-3">
+      <button
+        type="button"
+        onClick={() => setShowReport(!showReport)}
+        className="w-full flex items-center gap-3 py-2.5 px-3 text-left"
+      >
         <span className="shrink-0 text-xs text-neutral-500 w-16 text-right tabular-nums">
           {time}
         </span>
@@ -539,10 +541,19 @@ function ScheduleEventRow({
         <span className="flex-1 min-w-0 text-sm text-neutral-300 truncate">
           {event.name}
         </span>
-        {canReport && (
-          <ReportButton eventId={event.id} onReported={onReported} />
-        )}
-      </div>
+        <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${showReport ? "text-neutral-400" : "text-green-400 bg-green-500/10 border border-green-500/20"}`}>
+          {showReport ? "✕ Close" : "🍕 I see food!"}
+        </span>
+      </button>
+      {showReport && (
+        <div className="px-3 pb-3">
+          <ReportButton
+            eventId={event.id}
+            onReported={onReported}
+            defaultOpen
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -661,72 +672,66 @@ export default function Home() {
   );
 
   return (
-    <main className="min-h-screen max-w-3xl mx-auto">
-      {/* ── Hero ──────────────────────────────────────────────────── */}
-      <header className="relative mb-8">
-        {/* Full-width hero image */}
-        <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] overflow-hidden">
+    <main className="min-h-screen">
+      {/* ── Hero (full-bleed) ─────────────────────────────────────── */}
+      <header className="relative mb-8 max-w-3xl mx-auto px-5 pt-5">
+        <div className="relative rounded-2xl overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/hero.png"
             alt="FT Snacker"
-            className="w-full h-full object-cover"
+            className="w-full h-auto"
           />
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+          {/* Light overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
 
-          {/* Text overlay on image */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 text-center">
+          {/* Title overlaid at top only */}
+          <div className="absolute top-0 left-0 right-0 p-5 sm:p-8 text-center">
             <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-lg">
               FT SNACKER
             </h1>
-            <p className="mt-2 text-sm sm:text-base text-neutral-300">
+            <p className="mt-1 text-base sm:text-lg font-medium text-white drop-shadow-lg">
               Free Food at Frontier Tower
             </p>
           </div>
         </div>
 
-        {/* Content below hero image */}
-        <div className="px-5 pt-5">
-          <p className="text-center text-sm text-neutral-500">
-            Community-powered &mdash; anyone can report food they spot.
-          </p>
+        <p className="mt-4 text-center text-sm text-neutral-400">
+          Community-powered &mdash; anyone can report food they spot.
+        </p>
 
-          {/* Quick actions */}
-          <div className="mt-5 flex gap-3">
-            <a
-              href="#food"
-              className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 active:scale-95 transition-all"
-            >
-              &#127829; See Free Food
-            </a>
-            <a
-              href="#report"
-              className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25 active:scale-95 transition-all"
-            >
-              &#128064; Report Food
-            </a>
-          </div>
-
-          {/* Email signup */}
-          <div className="mt-5 flex flex-col items-center gap-3">
-            <EmailSignup />
-            <div className="flex items-center gap-4 text-sm">
-              <NotificationBanner />
-              <InstallButton />
-            </div>
-          </div>
-
-          {syncedAt && (
-            <p className="mt-3 text-center text-xs text-neutral-600">
-              Events updated {timeAgo(syncedAt)}
-            </p>
-          )}
+        <div className="mt-4 flex gap-3 max-w-md mx-auto">
+          <a
+            href="#food"
+            className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25 active:scale-95 transition-all"
+          >
+            &#127829; See Free Food
+          </a>
+          <a
+            href="#report"
+            className="flex-1 text-center px-4 py-3 rounded-2xl text-sm font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/25 active:scale-95 transition-all"
+          >
+            &#128064; Report Food
+          </a>
         </div>
+
+        <div className="mt-4 flex flex-col items-center gap-3">
+          <EmailSignup />
+          <div className="flex items-center gap-4 text-sm">
+            <NotificationBanner />
+            <InstallButton />
+          </div>
+        </div>
+
+        {syncedAt && (
+          <p className="mt-3 text-center text-xs text-neutral-600">
+            Events updated {timeAgo(syncedAt)}
+          </p>
+        )}
       </header>
 
       {/* ── Content ──────────────────────────────────────────────── */}
-      <div className="px-5">
+      <div className="max-w-3xl mx-auto px-5">
       {error && (
         <div className="text-center py-6 text-red-400 text-sm">
           <p>{error}</p>
