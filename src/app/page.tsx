@@ -740,13 +740,13 @@ export default function Home() {
             <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-ft-purple-light drop-shadow-lg">
               FT SNACKER
             </h1>
-            <p className="mt-1 text-base sm:text-lg font-medium text-ft-purple-pale drop-shadow-lg">
+            <p className="mt-1 text-xl sm:text-2xl font-medium text-ft-purple-pale drop-shadow-lg">
               Free Food at Frontier Tower
             </p>
           </div>
         </div>
 
-        <p className="mt-4 text-center text-sm text-neutral-400">
+        <p className="mt-4 text-center text-base sm:text-lg text-neutral-400">
           Community-powered &mdash; anyone can report food they spot.
         </p>
 
@@ -773,11 +773,6 @@ export default function Home() {
           </div>
         </div>
 
-        {syncedAt && (
-          <p className="mt-3 text-center text-xs text-neutral-600">
-            Events updated {timeAgo(syncedAt)}
-          </p>
-        )}
       </header>
 
       {/* ── Content ──────────────────────────────────────────────── */}
