@@ -208,9 +208,11 @@ interface BeforeInstallPromptEvent extends Event {
 function InstallButton() {
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (window.matchMedia("(display-mode: standalone)").matches) return;
+    if (sessionStorage.getItem("pwa-dismiss")) return;
 
     function handler(e: Event) {
       e.preventDefault();
@@ -230,15 +232,35 @@ function InstallButton() {
     deferredPrompt.current = null;
   }
 
-  if (!show) return null;
+  function handleDismiss() {
+    setDismissed(true);
+    sessionStorage.setItem("pwa-dismiss", "1");
+  }
+
+  if (!show || dismissed) return null;
 
   return (
-    <button
-      onClick={handleInstall}
-      className="text-sm text-neutral-400 hover:text-white transition-colors"
-    >
-      Install App
-    </button>
+    <div className="fixed bottom-0 inset-x-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black via-black/95 to-black/80 backdrop-blur-sm border-t border-ft-purple/30">
+      <div className="max-w-md mx-auto flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white truncate">Get FT Snacker</p>
+          <p className="text-xs text-neutral-400">Add to home screen for quick access</p>
+        </div>
+        <button
+          onClick={handleInstall}
+          className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-bold bg-ft-purple text-white active:scale-95 transition-transform"
+        >
+          Install
+        </button>
+        <button
+          onClick={handleDismiss}
+          aria-label="Dismiss"
+          className="shrink-0 p-1.5 rounded-full text-neutral-500 hover:text-white transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -769,7 +791,6 @@ export default function Home() {
           <EmailSignup />
           <div className="flex items-center gap-4 text-sm">
             <NotificationBanner />
-            <InstallButton />
           </div>
         </div>
 
@@ -922,6 +943,7 @@ export default function Home() {
         <p>Data from Luma &middot; Frontier Tower SF</p>
       </footer>
       </div>
+      <InstallButton />
     </main>
   );
 }
